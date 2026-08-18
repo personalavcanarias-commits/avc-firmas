@@ -1,0 +1,30 @@
+name: Build signature images
+on:
+  push:
+    paths:
+      - '.upload/**'
+      - '.github/workflows/build-signature-images.yml'
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild hosted images
+        shell: bash
+        run: |
+          cat .upload/cert.00 .upload/cert.01 .upload/cert.02 | base64 --decode > certificaciones-avc.jpg
+          cat .upload/asoc.00 .upload/asoc.01 .upload/asoc.02 | base64 --decode > asociaciones-avc.jpg
+          test "$(stat -c%s certificaciones-avc.jpg)" -eq 8495
+          test "$(stat -c%s asociaciones-avc.jpg)" -eq 8665
+      - name: Commit rebuilt images
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add certificaciones-avc.jpg asociaciones-avc.jpg
+          if ! git diff --cached --quiet; then
+            git commit -m "Rebuild signature images exactly"
+            git push
+          fi
